@@ -1,0 +1,17 @@
+swara,semitone_from_sa,cents_12tet,just_ratio_5limit,cents_just,enharmonic_note
+S,0,0,1/1,0.0,
+R1,1,100,16/15,111.7,
+R2,2,200,9/8,203.9,shares pitch with G1
+R3,3,300,6/5,315.6,shares pitch with G2
+G1,2,200,9/8,203.9,shares pitch with R2
+G2,3,300,6/5,315.6,shares pitch with R3
+G3,4,400,5/4,386.3,
+M1,5,500,4/3,498.0,
+M2,6,600,45/32,590.2,
+P,7,700,3/2,702.0,
+D1,8,800,8/5,813.7,
+D2,9,900,5/3,884.4,shares pitch with N1
+D3,10,1000,9/5,1017.6,shares pitch with N2
+N1,9,900,5/3,884.4,shares pitch with D2
+N2,10,1000,9/5,1017.6,shares pitch with D3
+N3,11,1100,15/8,1088.3,

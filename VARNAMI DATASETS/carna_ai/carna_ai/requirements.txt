@@ -1,0 +1,9 @@
+numpy
+scipy
+librosa>=0.10
+soundfile
+scikit-learn
+joblib
+flask>=3
+pytest
+# optional: essentia   (pip install essentia) -> audio.extract_pitch(engine="essentia") for polyphonic film audio

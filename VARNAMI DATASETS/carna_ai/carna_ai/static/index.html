@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CARNA-AI · Raga Lab</title>
+<style>
+:root{--bg:#faf8f5;--card:#fff;--ink:#1d1b19;--mut:#6b655e;--line:#e6e0d8;--acc:#b4412a;--ok:#2f7d4f;--warn:#a8741a}
+@media(prefers-color-scheme:dark){:root{--bg:#161412;--card:#201d1a;--ink:#efeae3;--mut:#9d968c;--line:#35302a;--acc:#e07a5f;--ok:#6cc08b;--warn:#e0b050}}
+*{box-sizing:border-box}body{margin:0;font:15px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+header{padding:18px 24px;border-bottom:1px solid var(--line)}h1{margin:0;font-size:20px}h1 small{color:var(--mut);font-weight:400;font-size:13px;margin-left:8px}
+main{max-width:1180px;margin:0 auto;padding:18px;display:grid;gap:16px;grid-template-columns:repeat(12,1fr)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}.c12{grid-column:span 12}.c6{grid-column:span 6}.c4{grid-column:span 4}.c8{grid-column:span 8}
+@media(max-width:860px){.c6,.c4,.c8{grid-column:span 12}}
+h2{margin:0 0 10px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut)}
+label{font-size:12px;color:var(--mut);display:block;margin-bottom:2px}input,select,button{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 9px}
+button{background:var(--acc);color:#fff;border:0;cursor:pointer;font-weight:600}button.sec{background:var(--bg);color:var(--ink);border:1px solid var(--line)}button:disabled{opacity:.5}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}.row>div{min-width:120px}
+canvas{width:100%;display:block}#tl{overflow-x:auto;border:1px solid var(--line);border-radius:6px}#tl canvas{width:auto}
+pre{margin:0;white-space:pre-wrap;font:14px/1.7 ui-monospace,monospace;background:var(--bg);padding:10px;border-radius:6px;border:1px solid var(--line)}
+.bar{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:13px}.bar b{width:175px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bar i{flex:1;height:14px;background:var(--bg);border-radius:4px;overflow:hidden}.bar i s{display:block;height:100%;background:var(--acc)}.bar u{width:46px;text-align:right;text-decoration:none;color:var(--mut)}
+ul{margin:6px 0 0;padding-left:18px}li{margin:4px 0}.warning{color:var(--warn)}.muted{color:var(--mut);font-size:13px}.pill{display:inline-block;padding:1px 8px;border-radius:99px;background:var(--bg);border:1px solid var(--line);font-size:12px;margin:2px 3px 2px 0}
+.stack{display:flex;height:22px;border-radius:5px;overflow:hidden;margin:8px 0}.stack div{height:100%}
+table{border-collapse:collapse;width:100%;font-size:13px}td,th{text-align:left;padding:3px 8px;border-bottom:1px solid var(--line)}
+#status{font-size:13px;color:var(--mut)}#err{color:#c0392b}audio{width:100%;margin-top:8px}
+</style></head><body>
+<header><h1>CARNA-AI <small>raga analysis &amp; composer prototype · pilot, not expert-verified</small></h1></header>
+<main>
+<section class="card c12"><h2>1 · Audio</h2><div class="row">
+ <div><label>Upload recording (wav/mp3/flac)</label><input type="file" id="file" accept="audio/*"></div>
+ <div><label>Tonic Sa in Hz (optional)</label><input id="tonic" type="number" step="0.01" placeholder="auto-estimate" style="width:150px"></div>
+ <div><label>Analyse first N seconds</label><input id="secs" type="number" value="60" min="10" max="240" style="width:90px"></div>
+ <button id="go">Analyse upload</button>
+ <div style="margin-left:auto"><label>No audio? synthetic demo (not real singing)</label>
+  <select id="demoR"></select> <select id="demoM"><option value="">single raga</option></select> <button class="sec" id="demo">Run demo</button></div>
+</div><p id="status"></p><p id="err"></p></section>
+
+<section class="card c12"><h2>2 · Pitch contour (cents above Sa) <span class="muted" id="tinfo"></span></h2><canvas id="pc" height="360"></canvas></section>
+<section class="card c12"><h2>3 · Swara timeline <span class="muted">/ rising · \ falling · ~ oscillation · width = duration</span></h2><div id="tl"><canvas id="tlc" height="64"></canvas></div><pre id="nota" style="margin-top:10px"></pre></section>
+
+<section class="card c4"><h2>4 · Raga confidence</h2><div id="conf" class="muted">Run an analysis.</div><div id="why"></div></section>
+<section class="card c4"><h2>Why this raga?</h2><div id="ev" class="muted"></div></section>
+<section class="card c4"><h2>5 · Film-song mix</h2><div id="film" class="muted"></div></section>
+
+<section class="card c12"><h2>6 · Composer: two-raga experiment</h2>
+<div class="row"><div><label>Raga A</label><select id="ca"></select></div><div><label>Raga B</label><select id="cb"></select></div>
+ <div><label>Length (notes)</label><input id="clen" type="number" value="16" min="8" max="48" style="width:80px"></div>
+ <div><label>Blend toward B: <span id="bv">50</span>%</label><input id="blend" type="range" min="0" max="100" value="50"></div>
+ <div><label>Variation seed</label><input id="seed" type="number" value="1" style="width:80px"></div>
+ <div><label>Sa (Hz)</label><input id="ctonic" type="number" value="146.83" step="0.01" style="width:90px"></div>
+ <div><label>Tempo (bpm)</label><input id="bpm" type="number" value="80" style="width:80px"></div>
+ <button id="comp">Generate phrase</button></div>
+<div class="row" style="margin-top:12px;align-items:flex-start"><div style="flex:1;min-width:300px" id="cmp" class="muted">Pick two ragas and generate.</div>
+ <div style="flex:1;min-width:300px"><pre id="cnota">—</pre><div id="cchk" class="muted" style="margin-top:6px"></div><audio id="player" controls></audio></div></div></section>
+</main>
+<script>
+const $=id=>document.getElementById(id),API='';let D=null;
+const col=(pc,a=1)=>`hsla(${pc*30},55%,50%,${a})`;
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+async function j(u,o){const r=await fetch(API+u,o);const d=await r.json();if(!r.ok)throw new Error(d.error||r.statusText);return d}
+function sel(id,names,first){$(id).innerHTML=(first?`<option value="">${first}</option>`:'')+names.map(n=>`<option>${n}</option>`).join('')}
+async function init(){const R=await j('/api/ragas'),n=R.map(r=>r.name);sel('demoR',n);sel('demoM',n,'single raga');sel('ca',n);sel('cb',n);
+ $('demoR').value='Hamsadhwani';$('ca').value='Hamsadhwani';$('cb').value='Ahiri';$('blend').oninput=e=>$('bv').textContent=e.target.value}
+function busy(m){$('status').textContent=m;if(m){$('err').textContent='';$('err').style.color=''}['go','demo','comp'].forEach(i=>$(i).disabled=!!m)}
+async function run(p){try{D=await p;render()}catch(e){$('err').textContent=e.message}busy('')}
+$('go').onclick=()=>{const f=$('file').files[0];if(!f)return $('err').textContent='Choose an audio file first.';busy('Analysing (pitch tracking can take ~10-30 s)…');
+ const fd=new FormData();fd.append('file',f);fd.append('max_seconds',$('secs').value);if($('tonic').value)fd.append('tonic_hz',$('tonic').value);run(j('/api/analyze',{method:'POST',body:fd}))};
+$('demo').onclick=()=>{busy('Generating & analysing synthetic clip…');run(j(`/api/demo?raga=${$('demoR').value}&mix=${$('demoM').value}&seconds=40&seed=${Date.now()%1000}`))};
+$('comp').onclick=async()=>{busy('Composing…');try{const c=await j('/api/compose',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({a:$('ca').value,b:$('cb').value,length:+$('clen').value,blend:$('blend').value/100,seed:+$('seed').value,tonic_hz:+$('ctonic').value,bpm:+$('bpm').value})});
+ $('cnota').textContent=c.notation+'\n\n'+c.legend;$('cchk').innerHTML=Object.entries(c.checks).map(([k,v])=>`<span class="pill" style="color:var(${v?'--ok':'--warn'})">${v?'✓':'✗'} ${k.replace(/_/g,' ')}</span>`).join('');
+ const p=$('player');p.src='data:audio/wav;base64,'+c.wav_base64;p.play().catch(()=>{});cmp(c.compare)}catch(e){$('err').textContent=e.message}busy('')};
+function cmp(c){const t=(k)=>c[k]?c[k].join(' ')||'—':'';$('cmp').innerHTML=`<table><tr><th></th><th>${c.a}</th><th>${c.b}</th></tr><tr><td>Arohanam</td><td>${c.arohanam[c.a]}</td><td>${c.arohanam[c.b]}</td></tr><tr><td>Avarohanam</td><td>${c.avarohanam[c.a]}</td><td>${c.avarohanam[c.b]}</td></tr>
+<tr><td>Swaras</td><td>${c.n_swaras[c.a]}</td><td>${c.n_swaras[c.b]}</td></tr><tr><td>Vakra</td><td>${c.vakra[c.a]}</td><td>${c.vakra[c.b]}</td></tr><tr><td>Unique swaras</td><td>${t('only_a')}</td><td>${t('only_b')}</td></tr></table>
+<p>Shared: <b>${t('shared')}</b> · Jaccard <b>${c.jaccard}</b>${c.naming_differences.length?'<br><span class="warning">Naming differs: '+c.naming_differences.join('; ')+'</span>':''}</p><p class="muted">${c.caveat}</p>`}
+function render(){const d=D,pc=d.classification;$('tinfo').textContent=`Sa = ${d.tonic_hz.toFixed(1)} Hz (${d.tonic_source||'known'}) · ${d.n_notes} notes · ${d.duration_s.toFixed(0)} s`+(d.demo?` · SYNTHETIC (true: ${d.demo.true_raga}${d.demo.mix?' + '+d.demo.mix:''})`:'');
+ $('err').style.color='var(--warn)';$('err').textContent=d.tonic_warning||'';
+ drawPitch(d);drawTL(d);$('nota').textContent=d.notation;
+ $('conf').innerHTML=pc.top.map(t=>`<div class="bar"><b>${t.raga}</b><i><s style="width:${t.confidence*100}%"></s></i><u>${(t.confidence*100).toFixed(0)}%</u></div>`).join('')+`<p class="muted">Margin over runner-up: ${(pc.margin*100).toFixed(0)} pts. Model confidence is uncalibrated.</p>`;
+ const e=d.explanation;$('ev').innerHTML=`<b>${e.raga}</b> — ${(e.confidence*100).toFixed(0)}%<ul>`+e.evidence.map(x=>`<li class="${x.kind=='warning'?'warning':''}">${x.text}</li>`).join('')+`</ul><p class="muted">${e.caveat}</p>`;
+ const f=d.film;$('film').innerHTML=`<b>${f.verdict}</b><div class="stack">${f.weights.map(w=>`<div title="${w.raga}" style="width:${w.pct}%;background:${hue(w.raga)}"></div>`).join('')}<div style="flex:1;background:var(--line)"></div></div>`+
+ f.weights.slice(0,4).map(w=>`<div class="bar"><b>${w.raga}</b><i><s style="width:${w.pct}%;background:${hue(w.raga)}"></s></i><u>${w.pct}%</u></div>`).join('')+`<p>Primary <b>${f.primary.raga} ${f.primary.pct}%</b>${f.secondary.raga?` · secondary <b>${f.secondary.raga} ${f.secondary.pct}%</b>`:''} · other ${f.other_pct}%</p>`+
+ (f.window_timeline.length?'<p class="muted">By 20 s window:</p>'+f.window_timeline.map(w=>`<span class="pill">${w.t0.toFixed(0)}–${w.t1.toFixed(0)}s ${w.raga} ${(w.p*100).toFixed(0)}%</span>`).join(''):'')+`<p class="muted">${f.note}</p>`;
+ if(!$('ca')._set){$('ca').value=pc.predicted;$('ca')._set=1}}
+const hue=r=>{let h=0;for(const c of r)h=(h*31+c.charCodeAt(0))%360;return `hsl(${h},50%,50%)`};
+function fit(c,h){const r=devicePixelRatio||1,w=c.clientWidth;c.width=w*r;c.height=h*r;const x=c.getContext('2d');x.scale(r,r);return[x,w]}
+function drawPitch(d){const c=$('pc');const[x,W]=fit(c,360),H=360,L=44,B=22,T=8,t=d.pitch.t,y=d.pitch.cents,T1=t[t.length-1]||1;
+ const v=y.filter(a=>a!=null).sort((a,b)=>a-b);let lo=Math.floor((v[Math.floor(v.length*.01)]-60)/100)*100,hi=Math.ceil((v[Math.floor(v.length*.99)]+60)/100)*100;
+ const X=s=>L+(s/T1)*(W-L-8),Y=cn=>T+(1-(cn-lo)/(hi-lo))*(H-T-B);x.clearRect(0,0,W,H);x.font='11px system-ui';x.textBaseline='middle';
+ const nm={},cnt={};d.notes.forEach(n=>{nm[n.semitone]=n.label;cnt[n.semitone]=(cnt[n.semitone]||0)+1});const inR=new Set(Object.keys(cnt).filter(k=>cnt[k]>=d.notes.length*.03).map(Number));
+ for(let s=lo/100;s<=hi/100;s++){const m=((s%12)+12)%12,on=inR.has(s);x.strokeStyle=css('--line');x.globalAlpha=on?1:.45;x.beginPath();x.moveTo(L,Y(s*100));x.lineTo(W-8,Y(s*100));x.stroke();x.globalAlpha=1;
+  x.fillStyle=on?col(m):css('--mut');x.textAlign='right';x.fillText(on?nm[s]:'',L-6,Y(s*100))}
+ d.notes.forEach(n=>{x.fillStyle=col(n.pc,.22);x.fillRect(X(n.start),Y(n.semitone*100+50),Math.max(1,X(n.end)-X(n.start)),Y(n.semitone*100-50)-Y(n.semitone*100+50))});
+ x.strokeStyle=css('--acc');x.lineWidth=1.6;x.beginPath();let pen=false;t.forEach((tt,i)=>{if(y[i]==null){pen=false;return}const px=X(tt),py=Y(y[i]);pen?x.lineTo(px,py):x.moveTo(px,py);pen=true});x.stroke();
+ x.fillStyle=css('--mut');x.textAlign='center';for(let s=0;s<=T1;s+=Math.max(5,Math.round(T1/10/5)*5))x.fillText(s+'s',X(s),H-8)}
+function drawTL(d){const pps=70,W=Math.max(400,d.duration_s*pps),c=$('tlc');c.style.width=W+'px';const x=c.getContext('2d'),r=devicePixelRatio||1;c.width=W*r;c.height=64*r;x.scale(r,r);x.font='600 12px system-ui';x.textAlign='center';x.textBaseline='middle';
+ const mk={oscillation:'~',glide_up:'/',glide_down:'\\',steady:''};d.notes.forEach(n=>{const a=n.start*pps,w=Math.max(2,n.dur*pps-1);x.fillStyle=col(n.pc,.85);x.fillRect(a,8,w,36);if(w>16){x.fillStyle='#fff';x.fillText(n.label+mk[n.movement],a+w/2,26)}});
+ x.fillStyle=css('--mut');x.textAlign='left';x.font='10px system-ui';for(let s=0;s<d.duration_s;s+=5)x.fillText(s+'s',s*pps+2,56)}
+addEventListener('resize',()=>D&&drawPitch(D));init();
+</script></body></html>

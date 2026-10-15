@@ -1,0 +1,15 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run CARNA-AI Flask app",
+			"type": "shell",
+			"command": "C:/Users/KiTE/AppData/Local/Programs/Python/Python310/python.exe",
+			"args": [
+				"app.py"
+			],
+			"isBackground": true,
+			"problemMatcher": []
+		}
+	]
+}

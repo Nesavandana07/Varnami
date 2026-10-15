@@ -1,0 +1,20 @@
+term,meaning,source
+Swara,"A basic musical note used in Carnatic music. Seven basic swaras: Sa, Ri, Ga, Ma, Pa, Da, Ni; Ri, Ga, Ma, Da, Ni have variants.",CARNA-AI Team Training Document
+Shruti / Tonic,"Reference pitch of a performance, commonly Sa. Software must work with relative pitch.",CARNA-AI Team Training Document
+Raga,"Melodic framework with characteristic note usage, movements, phrases and grammar; more than a scale.",CARNA-AI Team Training Document
+Arohanam,Ascending movement/note framework of a raga.,CARNA-AI Team Training Document
+Avarohanam,Descending movement/note framework of a raga.,CARNA-AI Team Training Document
+Prayoga,Characteristic phrase or note movement associated with a raga.,CARNA-AI Team Training Document
+Gamaka,Characteristic ornamentation or movement around/between notes.,CARNA-AI Team Training Document
+Tala,Rhythmic cycle/framework organising musical time.,CARNA-AI Team Training Document
+Kriti,"Major composed form with pallavi, anupallavi and charanam.",CARNA-AI Team Training Document
+Keerthanam,Devotional/composed musical form.,CARNA-AI Team Training Document
+Varnam,"Structured composition for learning, practice and performance containing characteristic raga and tala material.",CARNA-AI Team Training Document
+Thillana,"Rhythmically prominent composition, often late in a concert.",CARNA-AI Team Training Document
+Thanam,"Raga elaboration section, rhythmic melodic improvisation.",CARNA-AI Team Training Document
+Manodharma Sangeetham,"Improvisational aspect: alapana, neraval, swarakalpana.",CARNA-AI Team Training Document
+Alapana,Improvised exploration of a raga without fixed lyric structure.,CARNA-AI Team Training Document
+Neraval,Improvisation around a selected line while retaining text and framework.,CARNA-AI Team Training Document
+Swarakalpana,Improvised swara passages within raga and tala.,CARNA-AI Team Training Document
+Graha Bhedam,Shift of tonal reference to another swara and examining the resulting scale/raga.,CARNA-AI Team Training Document
+Raga Bhava,Characteristic melodic feel/expressive identity of a raga.,CARNA-AI Team Training Document

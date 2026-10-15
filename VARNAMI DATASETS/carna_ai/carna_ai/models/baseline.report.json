@@ -1,0 +1,28 @@
+{
+ "data": "SYNTHETIC grammar-generated contours (not real singing)",
+ "n_train_windows": 1920,
+ "n_test_windows": 480,
+ "test_accuracy": 0.9958333333333333,
+ "per_raga_recall": {
+  "Abhogi": 1.0,
+  "Ahiri": 1.0,
+  "Begada": 1.0,
+  "Bhairavi": 1.0,
+  "Dheerasankarabharanam": 1.0,
+  "Hamsadhwani": 1.0,
+  "Hanumatodi": 1.0,
+  "Harikambhoji": 0.9666666666666667,
+  "Kambhoji": 0.9666666666666667,
+  "Kharaharapriya": 1.0,
+  "Mayamalavagowla": 1.0,
+  "Mechakalyani": 1.0,
+  "Mohanam": 1.0,
+  "Sahana": 1.0,
+  "Saveri": 1.0,
+  "Sriragam": 1.0
+ },
+ "confusions": {
+  "Harikambhoji -> Kambhoji": 1,
+  "Kambhoji -> Harikambhoji": 1
+ }
+}
