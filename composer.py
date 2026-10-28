@@ -42,7 +42,51 @@ def _walk(raga, n, start, rng, shared, strong_every, profile):
     return out
 
 
-def generate(a, b, length=16, blend=0.5, seed=0, tonic_hz=146.83, bpm=80, with_audio=True):
+def syllabify(text):
+    """Splits lyrics text into syllables (aksharas) respecting hyphens, spaces, and Indic phonetics."""
+    if not text or not str(text).strip(): return []
+    import re
+    cleaned = re.sub(r'[,.;:!?|/\\~]+', ' ', str(text).strip())
+    words = cleaned.split()
+    syls = []
+    for w in words:
+        if "-" in w:
+            parts = [p.strip() for p in w.split("-") if p.strip()]
+            syls.extend(parts)
+        else:
+            chunks = re.findall(r'[bcdfghjklmnpqrstvwxyzBCDFGHJKLMNPQRSTVWXYZ]*[aeiouAEIOU]+(?:[bcdfghjklmnpqrstvwxyzBCDFGHJKLMNPQRSTVWXYZ](?![aeiouAEIOU]))*', w)
+            if chunks: syls.extend(chunks)
+            else: syls.append(w)
+    return [s for s in syls if s]
+
+
+def fit_lyrics(notes, lyrics_text):
+    """Fits lyrics syllables to swara notes, extending long notes (deergha) and building aligned dual notation."""
+    syls = syllabify(lyrics_text)
+    if not syls: return {"aligned": [], "dual_notation": "", "syllables": []}
+    aligned = []
+    for i, note in enumerate(notes):
+        syl = syls[i % len(syls)] if syls else "-"
+        dur = note["dur_beats"]
+        ext = " ." * max(0, int(round(dur)) - 1) if dur >= 1.5 else ""
+        aligned.append({
+            "note_idx": i, "swara": note["swara"], "dur_beats": dur,
+            "raga": note["raga"], "role": note["role"],
+            "syllable": syl, "display": f"{syl}{ext}".strip()
+        })
+    swara_toks, lyric_toks = [], []
+    for a in aligned:
+        sw_ext = "," * max(0, int(round(a["dur_beats"])) - 1) if a["dur_beats"] >= 1.5 else ""
+        sw = f"{a['swara']}{sw_ext}"
+        lyr = a["display"]
+        w = max(len(sw), len(lyr)) + 2
+        swara_toks.append(sw.ljust(w))
+        lyric_toks.append(lyr.ljust(w))
+    dual = "Swara:   " + "".join(swara_toks) + "\nSahitya: " + "".join(lyric_toks)
+    return {"aligned": aligned, "dual_notation": dual, "syllables": syls}
+
+
+def generate(a, b, length=16, blend=0.5, seed=0, tonic_hz=146.83, bpm=80, with_audio=True, lyrics=None):
     R = load_ragas(); A, B = R[a], R[b]; rng = np.random.default_rng(seed)
     shared = A.pcs & B.pcs; ua, ub = A.pcs - B.pcs, B.pcs - A.pcs
     length = int(np.clip(length, 8, 48)); nb = int(round(length * blend)); nb = int(np.clip(nb, 0 if blend == 0 else 3, length - (0 if blend == 1 else 3)))
@@ -88,6 +132,8 @@ def generate(a, b, length=16, blend=0.5, seed=0, tonic_hz=146.83, bpm=80, with_a
                     for i, n in enumerate(notes))
     out = {"a": a, "b": b, "notes": notes, "notation": text, "n_a": na, "n_b": nb, "checks": chk, "bpm": bpm, "tonic_hz": tonic_hz,
            "legend": "`|` = switch of raga at a shared pivot swara; `,` = held longer; `_low` = lower octave; no gamaka applied."}
+    if lyrics:
+        out["lyrics"] = fit_lyrics(notes, lyrics)
     if with_audio: out["wav_base64"] = render_wav(notes, tonic_hz, spb)
     return out
 

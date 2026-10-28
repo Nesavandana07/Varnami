@@ -1,6 +1,9 @@
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+root_dir = Path(__file__).resolve().parent
+carna_dir = root_dir / "VARNAMI DATASETS" / "carna_ai" / "carna_ai"
+sys.path.insert(0, str(carna_dir))
+sys.path.insert(0, str(root_dir))
 import app
 
 client = app.app.test_client()

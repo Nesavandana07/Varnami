@@ -1,96 +1,1191 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CARNA-AI · Raga Lab</title>
-<style>
-:root{--bg:#faf8f5;--card:#fff;--ink:#1d1b19;--mut:#6b655e;--line:#e6e0d8;--acc:#b4412a;--ok:#2f7d4f;--warn:#a8741a}
-@media(prefers-color-scheme:dark){:root{--bg:#161412;--card:#201d1a;--ink:#efeae3;--mut:#9d968c;--line:#35302a;--acc:#e07a5f;--ok:#6cc08b;--warn:#e0b050}}
-*{box-sizing:border-box}body{margin:0;font:15px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--ink)}
-header{padding:18px 24px;border-bottom:1px solid var(--line)}h1{margin:0;font-size:20px}h1 small{color:var(--mut);font-weight:400;font-size:13px;margin-left:8px}
-main{max-width:1180px;margin:0 auto;padding:18px;display:grid;gap:16px;grid-template-columns:repeat(12,1fr)}
-.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}.c12{grid-column:span 12}.c6{grid-column:span 6}.c4{grid-column:span 4}.c8{grid-column:span 8}
-@media(max-width:860px){.c6,.c4,.c8{grid-column:span 12}}
-h2{margin:0 0 10px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut)}
-label{font-size:12px;color:var(--mut);display:block;margin-bottom:2px}input,select,button{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 9px}
-button{background:var(--acc);color:#fff;border:0;cursor:pointer;font-weight:600}button.sec{background:var(--bg);color:var(--ink);border:1px solid var(--line)}button:disabled{opacity:.5}
-.row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}.row>div{min-width:120px}
-canvas{width:100%;display:block}#tl{overflow-x:auto;border:1px solid var(--line);border-radius:6px}#tl canvas{width:auto}
-pre{margin:0;white-space:pre-wrap;font:14px/1.7 ui-monospace,monospace;background:var(--bg);padding:10px;border-radius:6px;border:1px solid var(--line)}
-.bar{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:13px}.bar b{width:175px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bar i{flex:1;height:14px;background:var(--bg);border-radius:4px;overflow:hidden}.bar i s{display:block;height:100%;background:var(--acc)}.bar u{width:46px;text-align:right;text-decoration:none;color:var(--mut)}
-ul{margin:6px 0 0;padding-left:18px}li{margin:4px 0}.warning{color:var(--warn)}.muted{color:var(--mut);font-size:13px}.pill{display:inline-block;padding:1px 8px;border-radius:99px;background:var(--bg);border:1px solid var(--line);font-size:12px;margin:2px 3px 2px 0}
-.stack{display:flex;height:22px;border-radius:5px;overflow:hidden;margin:8px 0}.stack div{height:100%}
-table{border-collapse:collapse;width:100%;font-size:13px}td,th{text-align:left;padding:3px 8px;border-bottom:1px solid var(--line)}
-#status{font-size:13px;color:var(--mut)}#err{color:#c0392b}audio{width:100%;margin-top:8px}
-</style></head><body>
-<header><h1>CARNA-AI <small>raga analysis &amp; composer prototype · pilot, not expert-verified</small></h1></header>
-<main>
-<section class="card c12"><h2>1 · Audio</h2><div class="row">
- <div><label>Upload recording (wav/mp3/flac)</label><input type="file" id="file" accept="audio/*"></div>
- <div><label>Tonic Sa in Hz (optional)</label><input id="tonic" type="number" step="0.01" placeholder="auto-estimate" style="width:150px"></div>
- <div><label>Analyse first N seconds</label><input id="secs" type="number" value="60" min="10" max="240" style="width:90px"></div>
- <button id="go">Analyse upload</button>
- <div style="margin-left:auto"><label>No audio? synthetic demo (not real singing)</label>
-  <select id="demoR"></select> <select id="demoM"><option value="">single raga</option></select> <button class="sec" id="demo">Run demo</button></div>
-</div><p id="status"></p><p id="err"></p></section>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VARNAMI (CARNA-AI) · AI Carnatic Music Intelligence & Raga Composer</title>
+  <meta name="description" content="AI-powered Carnatic music analysis, pitch contour tracking, gamaka recognition, cine raga influence decomposition, and classical phrase composition.">
+  <link rel="stylesheet" href="/static/css/varnami.css">
+</head>
+<body>
 
-<section class="card c12"><h2>2 · Pitch contour (cents above Sa) <span class="muted" id="tinfo"></span></h2><canvas id="pc" height="360"></canvas></section>
-<section class="card c12"><h2>3 · Swara timeline <span class="muted">/ rising · \ falling · ~ oscillation · width = duration</span></h2><div id="tl"><canvas id="tlc" height="64"></canvas></div><pre id="nota" style="margin-top:10px"></pre></section>
+  <!-- ==========================================
+       SITE HEADER & NAVIGATION
+       ========================================== -->
+  <header class="site-header">
+    <div class="header-container">
+      <div class="brand" onclick="showPage('home')">
+        <div class="brand-icon">
+          <!-- Traditional Veena / Swara Glyph SVG -->
+          <svg viewBox="0 0 24 24">
+            <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6zM10 19c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>VARNAMI</h1>
+          <small>CARNA-AI · RAGA INTELLIGENCE</small>
+        </div>
+      </div>
 
-<section class="card c4"><h2>4 · Raga confidence</h2><div id="conf" class="muted">Run an analysis.</div><div id="why"></div></section>
-<section class="card c4"><h2>Why this raga?</h2><div id="ev" class="muted"></div></section>
-<section class="card c4"><h2>5 · Film-song mix</h2><div id="film" class="muted"></div></section>
+      <nav>
+        <ul class="nav-links" id="nav-links">
+          <li><button class="nav-btn active" data-page="home"><span>🏠</span> Home</button></li>
+          <li><button class="nav-btn" data-page="carnatic"><span>🎻</span> Carnatic</button></li>
+          <li><button class="nav-btn" data-page="cine"><span>🎬</span> Cine Songs</button></li>
+          <li><button class="nav-btn" data-page="humming"><span>🎙️</span> Humming</button></li>
+          <li><button class="nav-btn" data-page="explorer"><span>🎼</span> Raga Explorer</button></li>
+          <li><button class="nav-btn" data-page="composer"><span>✨</span> AI Composer</button></li>
+          <li><button class="nav-btn" data-page="library"><span>📚</span> Library</button></li>
+          <li><button class="nav-btn" data-page="glossary"><span>📖</span> Glossary</button></li>
+          <li><button class="nav-btn" data-page="contact"><span>✉️</span> Contact</button></li>
+        </ul>
+      </nav>
 
-<section class="card c12"><h2>6 · Composer: two-raga experiment</h2>
-<div class="row"><div><label>Raga A</label><select id="ca"></select></div><div><label>Raga B</label><select id="cb"></select></div>
- <div><label>Length (notes)</label><input id="clen" type="number" value="16" min="8" max="48" style="width:80px"></div>
- <div><label>Blend toward B: <span id="bv">50</span>%</label><input id="blend" type="range" min="0" max="100" value="50"></div>
- <div><label>Variation seed</label><input id="seed" type="number" value="1" style="width:80px"></div>
- <div><label>Sa (Hz)</label><input id="ctonic" type="number" value="146.83" step="0.01" style="width:90px"></div>
- <div><label>Tempo (bpm)</label><input id="bpm" type="number" value="80" style="width:80px"></div>
- <button id="comp">Generate phrase</button></div>
-<div class="row" style="margin-top:12px;align-items:flex-start"><div style="flex:1;min-width:300px" id="cmp" class="muted">Pick two ragas and generate.</div>
- <div style="flex:1;min-width:300px"><pre id="cnota">—</pre><div id="cchk" class="muted" style="margin-top:6px"></div><audio id="player" controls></audio></div></div></section>
-</main>
-<script>
-const $=id=>document.getElementById(id),API='';let D=null;
-const col=(pc,a=1)=>`hsla(${pc*30},55%,50%,${a})`;
-const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-async function j(u,o){const r=await fetch(API+u,o);const d=await r.json();if(!r.ok)throw new Error(d.error||r.statusText);return d}
-function sel(id,names,first){$(id).innerHTML=(first?`<option value="">${first}</option>`:'')+names.map(n=>`<option>${n}</option>`).join('')}
-async function init(){const R=await j('/api/ragas'),n=R.map(r=>r.name);sel('demoR',n);sel('demoM',n,'single raga');sel('ca',n);sel('cb',n);
- $('demoR').value='Hamsadhwani';$('ca').value='Hamsadhwani';$('cb').value='Ahiri';$('blend').oninput=e=>$('bv').textContent=e.target.value}
-function busy(m){$('status').textContent=m;if(m){$('err').textContent='';$('err').style.color=''}['go','demo','comp'].forEach(i=>$(i).disabled=!!m)}
-async function run(p){try{D=await p;render()}catch(e){$('err').textContent=e.message}busy('')}
-$('go').onclick=()=>{const f=$('file').files[0];if(!f)return $('err').textContent='Choose an audio file first.';busy('Analysing (pitch tracking can take ~10-30 s)…');
- const fd=new FormData();fd.append('file',f);fd.append('max_seconds',$('secs').value);if($('tonic').value)fd.append('tonic_hz',$('tonic').value);run(j('/api/analyze',{method:'POST',body:fd}))};
-$('demo').onclick=()=>{busy('Generating & analysing synthetic clip…');run(j(`/api/demo?raga=${$('demoR').value}&mix=${$('demoM').value}&seconds=40&seed=${Date.now()%1000}`))};
-$('comp').onclick=async()=>{busy('Composing…');try{const c=await j('/api/compose',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({a:$('ca').value,b:$('cb').value,length:+$('clen').value,blend:$('blend').value/100,seed:+$('seed').value,tonic_hz:+$('ctonic').value,bpm:+$('bpm').value})});
- $('cnota').textContent=c.notation+'\n\n'+c.legend;$('cchk').innerHTML=Object.entries(c.checks).map(([k,v])=>`<span class="pill" style="color:var(${v?'--ok':'--warn'})">${v?'✓':'✗'} ${k.replace(/_/g,' ')}</span>`).join('');
- const p=$('player');p.src='data:audio/wav;base64,'+c.wav_base64;p.play().catch(()=>{});cmp(c.compare)}catch(e){$('err').textContent=e.message}busy('')};
-function cmp(c){const t=(k)=>c[k]?c[k].join(' ')||'—':'';$('cmp').innerHTML=`<table><tr><th></th><th>${c.a}</th><th>${c.b}</th></tr><tr><td>Arohanam</td><td>${c.arohanam[c.a]}</td><td>${c.arohanam[c.b]}</td></tr><tr><td>Avarohanam</td><td>${c.avarohanam[c.a]}</td><td>${c.avarohanam[c.b]}</td></tr>
-<tr><td>Swaras</td><td>${c.n_swaras[c.a]}</td><td>${c.n_swaras[c.b]}</td></tr><tr><td>Vakra</td><td>${c.vakra[c.a]}</td><td>${c.vakra[c.b]}</td></tr><tr><td>Unique swaras</td><td>${t('only_a')}</td><td>${t('only_b')}</td></tr></table>
-<p>Shared: <b>${t('shared')}</b> · Jaccard <b>${c.jaccard}</b>${c.naming_differences.length?'<br><span class="warning">Naming differs: '+c.naming_differences.join('; ')+'</span>':''}</p><p class="muted">${c.caveat}</p>`}
-function render(){const d=D,pc=d.classification;$('tinfo').textContent=`Sa = ${d.tonic_hz.toFixed(1)} Hz (${d.tonic_source||'known'}) · ${d.n_notes} notes · ${d.duration_s.toFixed(0)} s`+(d.demo?` · SYNTHETIC (true: ${d.demo.true_raga}${d.demo.mix?' + '+d.demo.mix:''})`:'');
- $('err').style.color='var(--warn)';$('err').textContent=d.tonic_warning||'';
- drawPitch(d);drawTL(d);$('nota').textContent=d.notation;
- $('conf').innerHTML=pc.top.map(t=>`<div class="bar"><b>${t.raga}</b><i><s style="width:${t.confidence*100}%"></s></i><u>${(t.confidence*100).toFixed(0)}%</u></div>`).join('')+`<p class="muted">Margin over runner-up: ${(pc.margin*100).toFixed(0)} pts. Model confidence is uncalibrated.</p>`;
- const e=d.explanation;$('ev').innerHTML=`<b>${e.raga}</b> — ${(e.confidence*100).toFixed(0)}%<ul>`+e.evidence.map(x=>`<li class="${x.kind=='warning'?'warning':''}">${x.text}</li>`).join('')+`</ul><p class="muted">${e.caveat}</p>`;
- const f=d.film;$('film').innerHTML=`<b>${f.verdict}</b><div class="stack">${f.weights.map(w=>`<div title="${w.raga}" style="width:${w.pct}%;background:${hue(w.raga)}"></div>`).join('')}<div style="flex:1;background:var(--line)"></div></div>`+
- f.weights.slice(0,4).map(w=>`<div class="bar"><b>${w.raga}</b><i><s style="width:${w.pct}%;background:${hue(w.raga)}"></s></i><u>${w.pct}%</u></div>`).join('')+`<p>Primary <b>${f.primary.raga} ${f.primary.pct}%</b>${f.secondary.raga?` · secondary <b>${f.secondary.raga} ${f.secondary.pct}%</b>`:''} · other ${f.other_pct}%</p>`+
- (f.window_timeline.length?'<p class="muted">By 20 s window:</p>'+f.window_timeline.map(w=>`<span class="pill">${w.t0.toFixed(0)}–${w.t1.toFixed(0)}s ${w.raga} ${(w.p*100).toFixed(0)}%</span>`).join(''):'')+`<p class="muted">${f.note}</p>`;
- if(!$('ca')._set){$('ca').value=pc.predicted;$('ca')._set=1}}
-const hue=r=>{let h=0;for(const c of r)h=(h*31+c.charCodeAt(0))%360;return `hsl(${h},50%,50%)`};
-function fit(c,h){const r=devicePixelRatio||1,w=c.clientWidth;c.width=w*r;c.height=h*r;const x=c.getContext('2d');x.scale(r,r);return[x,w]}
-function drawPitch(d){const c=$('pc');const[x,W]=fit(c,360),H=360,L=44,B=22,T=8,t=d.pitch.t,y=d.pitch.cents,T1=t[t.length-1]||1;
- const v=y.filter(a=>a!=null).sort((a,b)=>a-b);let lo=Math.floor((v[Math.floor(v.length*.01)]-60)/100)*100,hi=Math.ceil((v[Math.floor(v.length*.99)]+60)/100)*100;
- const X=s=>L+(s/T1)*(W-L-8),Y=cn=>T+(1-(cn-lo)/(hi-lo))*(H-T-B);x.clearRect(0,0,W,H);x.font='11px system-ui';x.textBaseline='middle';
- const nm={},cnt={};d.notes.forEach(n=>{nm[n.semitone]=n.label;cnt[n.semitone]=(cnt[n.semitone]||0)+1});const inR=new Set(Object.keys(cnt).filter(k=>cnt[k]>=d.notes.length*.03).map(Number));
- for(let s=lo/100;s<=hi/100;s++){const m=((s%12)+12)%12,on=inR.has(s);x.strokeStyle=css('--line');x.globalAlpha=on?1:.45;x.beginPath();x.moveTo(L,Y(s*100));x.lineTo(W-8,Y(s*100));x.stroke();x.globalAlpha=1;
-  x.fillStyle=on?col(m):css('--mut');x.textAlign='right';x.fillText(on?nm[s]:'',L-6,Y(s*100))}
- d.notes.forEach(n=>{x.fillStyle=col(n.pc,.22);x.fillRect(X(n.start),Y(n.semitone*100+50),Math.max(1,X(n.end)-X(n.start)),Y(n.semitone*100-50)-Y(n.semitone*100+50))});
- x.strokeStyle=css('--acc');x.lineWidth=1.6;x.beginPath();let pen=false;t.forEach((tt,i)=>{if(y[i]==null){pen=false;return}const px=X(tt),py=Y(y[i]);pen?x.lineTo(px,py):x.moveTo(px,py);pen=true});x.stroke();
- x.fillStyle=css('--mut');x.textAlign='center';for(let s=0;s<=T1;s+=Math.max(5,Math.round(T1/10/5)*5))x.fillText(s+'s',X(s),H-8)}
-function drawTL(d){const pps=70,W=Math.max(400,d.duration_s*pps),c=$('tlc');c.style.width=W+'px';const x=c.getContext('2d'),r=devicePixelRatio||1;c.width=W*r;c.height=64*r;x.scale(r,r);x.font='600 12px system-ui';x.textAlign='center';x.textBaseline='middle';
- const mk={oscillation:'~',glide_up:'/',glide_down:'\\',steady:''};d.notes.forEach(n=>{const a=n.start*pps,w=Math.max(2,n.dur*pps-1);x.fillStyle=col(n.pc,.85);x.fillRect(a,8,w,36);if(w>16){x.fillStyle='#fff';x.fillText(n.label+mk[n.movement],a+w/2,26)}});
- x.fillStyle=css('--mut');x.textAlign='left';x.font='10px system-ui';for(let s=0;s<d.duration_s;s+=5)x.fillText(s+'s',s*pps+2,56)}
-addEventListener('resize',()=>D&&drawPitch(D));init();
-</script></body></html>
+      <div class="header-actions">
+        <button class="theme-toggle-btn" id="theme-toggle-btn" aria-label="Toggle Light / Dark Theme" title="Toggle Light / Dark Mode" onclick="toggleTheme()">
+          <span id="theme-icon">☀️</span>
+        </button>
+
+        <div class="user-badge" id="user-badge" onclick="openAuthModal('profile')">
+          <div class="avatar-circle" id="user-avatar-display">VN</div>
+          <div class="user-meta">
+            <span class="user-name" id="user-name-display">Vidya Narayanan</span>
+            <span class="user-role-badge" id="user-role-display">Carnatic Student</span>
+          </div>
+        </div>
+        <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Toggle navigation menu">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==========================================
+       MAIN APPLICATION CONTAINER
+       ========================================== -->
+  <main class="app-container">
+
+    <!-- ==========================================
+         PAGE 1: HOME / INTRO
+         ========================================== -->
+    <section id="page-home" class="page-view active">
+      <div class="hero-section">
+        <div class="hero-pill">✦ VARNAMI · AI-POWERED CARNATIC INTELLIGENCE ✦</div>
+        <h1 class="hero-title">
+          Where Ancient Melodic Science <br>
+          <span class="gold-gradient-text">Meets Artificial Intelligence</span>
+        </h1>
+        <p class="hero-subtitle">
+          Decode microtonal gamakas, identify ragas in Carnatic classical and cine compositions, capture vocal alapanas via live microphone, and compose blended swara phrases with AI.
+        </p>
+
+        <div class="hero-cta">
+          <button class="btn btn-primary btn-lg" onclick="showPage('carnatic')">
+            <span>🎻</span> Analyze Carnatic Song
+          </button>
+          <button class="btn btn-purple btn-lg" onclick="showPage('humming')">
+            <span>🎙️</span> Live Alapana / Humming
+          </button>
+          <button class="btn btn-secondary btn-lg" onclick="showPage('composer')">
+            <span>✨</span> AI Raga Composer
+          </button>
+          <button class="btn btn-outline-gold btn-lg" onclick="showPage('explorer')">
+            <span>🎼</span> Raga Explorer
+          </button>
+        </div>
+
+        <div class="hero-stats">
+          <div class="stat-item">
+            <div class="stat-number">16+</div>
+            <div class="stat-label">Core Classical Ragas</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number">72</div>
+            <div class="stat-label">Melakarta Reference</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number">pYIN + Gate</div>
+            <div class="stat-label">Microtonal Pitch Tracker</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number">Dual-Blend</div>
+            <div class="stat-label">AI Melodic Synthesis</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feature Grid -->
+      <div class="features-grid">
+        <div class="feature-card" onclick="showPage('carnatic')">
+          <div class="feature-icon-wrapper">
+            <svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+          </div>
+          <h3>Carnatic Classical Analysis</h3>
+          <p>Analyze vocal varnams and kritis. Extract continuous pitch contours, estimate swara notation with gamaka markers, detect tonic Sa (Shruti), and verify arohanam/avarohanam conformance.</p>
+          <div class="feature-action">Open Carnatic Studio →</div>
+        </div>
+
+        <div class="feature-card" onclick="showPage('cine')">
+          <div class="feature-icon-wrapper">
+            <svg viewBox="0 0 24 24"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
+          </div>
+          <h3>Cine & Film Song Analysis</h3>
+          <p>Detect multi-raga influences in Indian film music. Inspect 20-second sliding window timelines showing raga shifts between Pallavi and Charanam, with primary and secondary raga weights.</p>
+          <div class="feature-action">Analyze Film Songs →</div>
+        </div>
+
+        <div class="feature-card" onclick="showPage('humming')">
+          <div class="feature-icon-wrapper">
+            <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+          </div>
+          <h3>Live Alapana & Humming</h3>
+          <p>Sing or hum directly into your microphone with live real-time audio visualization. Our AI extracts your pitch trajectory, transcribes swaras, and ranks candidate ragas instantly.</p>
+          <div class="feature-action">Start Humming Session →</div>
+        </div>
+
+        <div class="feature-card" onclick="showPage('explorer')">
+          <div class="feature-icon-wrapper">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+          </div>
+          <h3>Interactive Raga Explorer</h3>
+          <p>Browse our verified catalog of Melakarta and Janya ragas. Filter by pentatonic (audava), hexatonic (shadava), or heptatonic scales, hear synthetic scales with tanpura, and inspect cents.</p>
+          <div class="feature-action">Explore Catalog →</div>
+        </div>
+
+        <div class="feature-card" onclick="showPage('composer')">
+          <div class="feature-icon-wrapper">
+            <svg viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19.4c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0l1.9-1.9C9.22 19.58 10.56 20 12 20c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 15c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/></svg>
+          </div>
+          <h3>AI Raga Composer & MIDI</h3>
+          <p>Create constrained two-raga hybrid phrases guided by classical aesthetics. Align lyrics (Sahitya) to deergha notes, verify classical rules, and export playable WAV audio and standard MIDI files.</p>
+          <div class="feature-action">Open Composer Studio →</div>
+        </div>
+
+        <div class="feature-card" onclick="showPage('library')">
+          <div class="feature-icon-wrapper">
+            <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>
+          </div>
+          <h3>Personal Music Library</h3>
+          <p>Access your past song analyses, saved humming sessions, and generated compositions. Reopen results in the dashboard anytime or export reports and sheet notation.</p>
+          <div class="feature-action">View Saved Records →</div>
+        </div>
+      </div>
+
+      <!-- Scientific Transparency Banner -->
+      <div class="card col-12" style="margin-top:2rem; border-color:rgba(229,176,66,0.3); background:rgba(22,14,40,0.6)">
+        <div style="display:flex; align-items:flex-start; gap:1rem">
+          <span style="font-size:1.6rem; color:var(--gold)">⚖️</span>
+          <div>
+            <h4 style="color:var(--gold-light); margin-bottom:0.3rem">Scientific Transparency & Team Rule 4 Notice</h4>
+            <p style="font-size:0.88rem; line-height:1.6">
+              Raga similarity percentages and confidence scores in VARNAMI are computed using directional transition matrices, pitch-class histograms, and scale grammar. They represent <b>relative model estimates</b>, not guaranteed absolute probabilities. As per project constraints, uncalibrated real-singing claims are avoided, and features clearly distinguish baseline synthetic grammar from expert-verified prayogas.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         PAGE 2: CARNATIC CLASSICAL ANALYSIS
+         ========================================== -->
+    <section id="page-carnatic" class="page-view">
+      <div class="tab-switcher">
+        <button class="tab-btn active" onclick="showPage('carnatic')">🎻 Carnatic Classical Analysis</button>
+        <button class="tab-btn" onclick="showPage('cine')">🎬 Cine / Film Song Analysis</button>
+      </div>
+
+      <div class="grid g-12">
+        <!-- Input & Controls Card -->
+        <div class="card col-12">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+              <span>Carnatic Recording Input</span>
+            </div>
+            <span class="card-badge">Vocal &amp; Instrument Analysis</span>
+          </div>
+
+          <div class="grid g-12">
+            <!-- Upload Dropzone -->
+            <div class="col-6">
+              <div class="dropzone" id="carnatic-dropzone" onclick="$('carnatic-file').click()">
+                <div class="dropzone-icon">
+                  <svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
+                </div>
+                <div style="font-weight:600; color:var(--text-main)">Drag &amp; drop audio file, or click to browse</div>
+                <small style="color:var(--text-muted)">Supports MP3, WAV, FLAC (up to 80MB)</small>
+                <input type="file" id="carnatic-file" accept="audio/*" style="display:none" onchange="showToast('Selected: ' + this.files[0].name)">
+              </div>
+
+              <div style="margin-top:1rem; display:flex; gap:0.8rem; align-items:center">
+                <button class="btn btn-primary" onclick="runCarnaticAnalysis()">Analyze Uploaded Audio</button>
+              </div>
+            </div>
+
+            <!-- Preloaded Samples & Synthetic Demo -->
+            <div class="col-6">
+              <div style="background:var(--bg-input); border:1px solid var(--line); border-radius:var(--radius-md); padding:1.2rem; height:100%; display:flex; flex-direction:column; justify-content:space-between">
+                <div>
+                  <h4 style="margin-bottom:0.6rem; color:var(--gold-light)">Quick-Load Authentic Varnam Recordings</h4>
+                  <p style="font-size:0.84rem; margin-bottom:0.8rem">Click any sample to analyze immediately, or choose from dropdown:</p>
+
+                  <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.8rem">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="runCarnaticAnalysis('mohanam_varnam.mp3')">🎵 Ninnukori (Mohanam)</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="runCarnaticAnalysis('abhogi_varnam.mp3')">🎵 Evari Bodha (Abhogi)</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="runCarnaticAnalysis('sahana_varnam.mp3')">🎵 Karunimpa (Sahana)</button>
+                  </div>
+                  
+                  <div class="form-group">
+                    <select id="carnatic-sample-select" onchange="if(this.value) runCarnaticAnalysis(this.value)">
+                      <option value="">-- Or choose from recording list --</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style="border-top:1px solid var(--line-light); padding-top:0.8rem; margin-top:0.8rem">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem">
+                    <small style="font-weight:600; color:var(--text-soft)">Or run a Synthetic Baseline Demo:</small>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="runSyntheticDemo('carnatic')">Run Demo</button>
+                  </div>
+                  <div style="display:flex; gap:0.5rem">
+                    <select id="carnatic-demo-raga" style="font-size:0.82rem"></select>
+                    <select id="carnatic-demo-mix" style="font-size:0.82rem">
+                      <option value="">Single Raga</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Parameters Bar -->
+            <div class="col-12" style="display:flex; gap:1.2rem; flex-wrap:wrap; align-items:center; border-top:1px solid var(--line-light); padding-top:1rem">
+              <div style="min-width:180px">
+                <label>Tonic Sa in Hz <small>(optional)</small></label>
+                <input id="carnatic-tonic" type="number" step="0.01" placeholder="Auto-estimate">
+              </div>
+              <div style="min-width:140px">
+                <label>Analysis Duration (sec)</label>
+                <input id="carnatic-secs" type="number" value="30" min="10" max="240">
+              </div>
+              <div style="flex:1">
+                <div id="carnatic-status" style="font-size:0.85rem; color:var(--gold); font-weight:600"></div>
+                <div id="carnatic-err" style="font-size:0.85rem; color:var(--err)"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Carnatic Results Dashboard -->
+        <div id="carnatic-results" class="col-12" style="display:none">
+          <div class="grid g-12">
+
+            <!-- Primary Prediction & Tonic Card -->
+            <div class="card col-4 card-gold">
+              <div class="card-header">
+                <div class="card-title"><span>🏆 Predicted Raga</span></div>
+                <span class="card-badge" id="res-raga-confidence">--%</span>
+              </div>
+              <h2 id="res-predicted-raga" class="gold-gradient-text" style="font-size:2.1rem; margin-bottom:0.4rem">—</h2>
+              <div id="res-raga-type" style="color:var(--text-soft); font-size:0.88rem; margin-bottom:0.8rem">Carnatic Classical</div>
+              <div id="res-raga-margin" style="font-size:0.8rem; color:var(--text-muted); margin-bottom:1rem">Margin over runner-up: —</div>
+
+              <div style="background:var(--bg-input); padding:0.8rem; border-radius:var(--radius-md); border:1px solid var(--line-light)">
+                <div style="font-size:0.8rem; color:var(--text-muted)">ESTIMATED SHUTI / TONIC SA</div>
+                <div id="res-tonic-val" style="font-size:1.15rem; font-weight:700; color:var(--gold-bright); font-family:var(--font-mono)">— Hz</div>
+                <small id="res-duration-val" style="color:var(--text-soft)">—</small>
+                <div id="res-tonic-warning" style="display:none; color:var(--warn); font-size:0.75rem; margin-top:0.4rem">
+                  ⚠️ <span id="res-tonic-warning-text"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Scales & Swaras Card -->
+            <div class="card col-4">
+              <div class="card-header">
+                <div class="card-title"><span>🎼 Scale Conformance</span></div>
+              </div>
+              <div style="margin-bottom:0.8rem">
+                <label style="margin-bottom:0.3rem">Arohanam (Ascending Scale)</label>
+                <div id="res-arohanam" style="line-height:1.8">—</div>
+              </div>
+              <div style="margin-bottom:1rem">
+                <label style="margin-bottom:0.3rem">Avarohanam (Descending Scale)</label>
+                <div id="res-avarohanam" style="line-height:1.8">—</div>
+              </div>
+              <div>
+                <label style="margin-bottom:0.3rem">Evidence &amp; Transitions</label>
+                <ul id="res-evidence-list" style="padding-left:1.2rem; font-size:0.84rem"></ul>
+              </div>
+            </div>
+
+            <!-- Candidate Ragas Bar Chart -->
+            <div class="card col-4">
+              <div class="card-header">
+                <div class="card-title"><span>📊 Raga Similarity Ranking</span></div>
+                <small style="color:var(--text-muted)">Top 5 Candidates</small>
+              </div>
+              <div id="res-confidence-bars"></div>
+              <small style="display:block; margin-top:1rem; color:var(--text-muted); font-size:0.75rem">
+                * Percentages reflect grammar &amp; intonation alignment, not absolute probability.
+              </small>
+            </div>
+
+            <!-- Pitch Contour Graph -->
+            <div class="card col-12">
+              <div class="card-header">
+                <div class="card-title"><span>📈 Continuous Pitch Contour (Cents above Sa)</span></div>
+                <small style="color:var(--text-muted)">Gold = Tracked f0 Contour · Tinted Blocks = Segmented Swara Bounding</small>
+              </div>
+              <div class="pitch-canvas-wrapper">
+                <canvas id="carnatic-pitch-canvas" class="pitch-canvas"></canvas>
+              </div>
+            </div>
+
+            <!-- Swara Timeline -->
+            <div class="card col-12">
+              <div class="card-header">
+                <div class="card-title"><span>🎹 Swara Progression Timeline</span></div>
+                <small style="color:var(--text-muted)">Width = Duration · Marks: / glide up · \ glide down · ~ oscillation</small>
+              </div>
+              <div class="swara-timeline-wrapper">
+                <canvas id="carnatic-timeline-canvas" class="swara-timeline-canvas"></canvas>
+              </div>
+            </div>
+
+            <!-- Notation & Editor Card -->
+            <div class="card col-12">
+              <div class="card-header">
+                <div class="card-title"><span>📝 Estimated Swara Notation (Editable)</span></div>
+                <div style="display:flex; gap:0.5rem">
+                  <button class="btn btn-secondary btn-sm" onclick="saveToLibrary({title: ($('res-predicted-raga').textContent || 'Song') + ' Analysis', type: 'carnatic', raga: $('res-predicted-raga').textContent, notation: $('res-notation').textContent, tonicHz: STATE.activeAnalysis?.tonic_hz})">
+                    💾 Save to Library
+                  </button>
+                  <button class="btn btn-secondary btn-sm" onclick="exportAnalysisJSON()">Download JSON</button>
+                </div>
+              </div>
+              <div id="res-notation" class="notation-box" contenteditable="true" spellcheck="false"></div>
+              <small style="color:var(--text-muted); display:block; margin-top:0.5rem">
+                Tip: Click directly in the notation box above to correct notes or add ornaments. Notation conforms to: <code>.S</code> lower octave, <code>S'</code> higher octave, <code>,</code> hold.
+              </small>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==========================================
+         PAGE 3: CINE & FILM SONG ANALYSIS
+         ========================================== -->
+    <section id="page-cine" class="page-view">
+      <div class="tab-switcher">
+        <button class="tab-btn" onclick="showPage('carnatic')">🎻 Carnatic Classical Analysis</button>
+        <button class="tab-btn active" onclick="showPage('cine')">🎬 Cine / Film Song Analysis</button>
+      </div>
+
+      <div class="grid g-12">
+        <div class="card col-12">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
+              <span>Film Song Input &amp; Multi-Raga Decomposition</span>
+            </div>
+            <span class="card-badge">Cine &amp; Fusion Polyphony</span>
+          </div>
+
+          <div class="grid g-12">
+            <div class="col-6">
+              <div class="dropzone" id="cine-dropzone" onclick="$('cine-file').click()">
+                <div class="dropzone-icon">
+                  <svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
+                </div>
+                <div style="font-weight:600; color:var(--text-main)">Select Cine / Film Song recording</div>
+                <small style="color:var(--text-muted)">Supports MP3, WAV (Tamil, Telugu, Malayalam, Hindi film songs)</small>
+                <input type="file" id="cine-file" accept="audio/*" style="display:none" onchange="showToast('Selected: ' + this.files[0].name)">
+              </div>
+              <div style="margin-top:1rem; display:flex; gap:0.8rem">
+                <button class="btn btn-primary" onclick="runCineAnalysis()">Analyze Film Song</button>
+              </div>
+            </div>
+
+            <div class="col-6">
+              <div style="background:var(--bg-input); border:1px solid var(--line); border-radius:var(--radius-md); padding:1.2rem; height:100%; display:flex; flex-direction:column; justify-content:space-between">
+                <div>
+                  <h4 style="margin-bottom:0.5rem; color:var(--gold-light)">Quick-Load Famous Cine Reference Songs</h4>
+                  <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.8rem">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="runCinePreset('Nilaave Vaa (Mouna Ragam)', 'Mechakalyani', 'Ahiri')">🎬 Nilaave Vaa (Kalyani)</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="runCinePreset('Kannodu Kaanbadhellam (Jeans)', 'Abhogi', '')">🎬 Kannodu (Abhogi)</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="runCinePreset('Pattum Naane (Thiruvilayadal)', 'Mohanam', '')">🎬 Pattum Naane (Mohanam)</button>
+                  </div>
+
+                  <p style="font-size:0.84rem; margin-bottom:0.6rem">
+                    Or choose two ragas to simulate a film modulation (e.g. Pallavi vs Charanam):
+                  </p>
+                  <div style="display:flex; gap:0.6rem; margin-bottom:0.6rem">
+                    <select id="cine-demo-raga"></select>
+                    <select id="cine-demo-mix"></select>
+                  </div>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="runSyntheticDemo('cine')">Generate &amp; Analyze Cine Demo</button>
+              </div>
+            </div>
+
+            <div class="col-12" style="display:flex; gap:1.2rem; align-items:center; border-top:1px solid var(--line-light); padding-top:1rem">
+              <div style="min-width:140px">
+                <label>Duration (sec)</label>
+                <input id="cine-secs" type="number" value="35" min="15" max="240">
+              </div>
+              <div style="flex:1">
+                <div id="cine-status" style="font-size:0.85rem; color:var(--gold); font-weight:600"></div>
+                <div id="cine-err" style="font-size:0.85rem; color:var(--err)"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cine Results Dashboard -->
+        <div id="cine-results" class="col-12" style="display:none">
+          <div class="grid g-12">
+            <!-- Film Song Multi-Raga Stack Card -->
+            <div class="card col-12 card-gold">
+              <div class="card-header">
+                <div class="card-title"><span>🎬 Film Influence Multi-Raga Decomposition</span></div>
+                <span class="card-badge" id="cine-verdict">Single Raga Predominant</span>
+              </div>
+
+              <div class="film-stack" id="cine-film-stack"></div>
+
+              <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:1rem; margin-top:0.8rem">
+                <div>
+                  <small style="color:var(--text-muted); display:block">PRIMARY RAGA</small>
+                  <b id="cine-primary-raga" style="font-size:1.15rem; color:var(--gold-bright)">—</b>
+                </div>
+                <div>
+                  <small style="color:var(--text-muted); display:block">SECONDARY RAGA</small>
+                  <b id="cine-secondary-raga" style="font-size:1.15rem; color:#d8b4fe">—</b>
+                </div>
+                <div>
+                  <small style="color:var(--text-muted); display:block">OTHER INFLUENCES</small>
+                  <b id="cine-other-pct" style="font-size:1.15rem; color:var(--text-soft)">—</b>
+                </div>
+              </div>
+            </div>
+
+            <!-- Top Film Raga Weights -->
+            <div class="card col-6">
+              <div class="card-header">
+                <div class="card-title"><span>📊 Raga Proportions in Arrangement</span></div>
+              </div>
+              <div id="cine-weights-bars"></div>
+            </div>
+
+            <!-- 20-Second Sliding Window Progression -->
+            <div class="card col-6">
+              <div class="card-header">
+                <div class="card-title"><span>⏱️ 20-Second Sectional Timeline</span></div>
+                <small style="color:var(--text-muted)">Raga Transitions Across Song</small>
+              </div>
+              <div id="cine-window-timeline" style="display:flex; gap:0.6rem; flex-wrap:wrap"></div>
+            </div>
+
+            <!-- Pitch Contour & Timeline -->
+            <div class="card col-12">
+              <div class="card-header">
+                <div class="card-title"><span>📈 Cine Pitch Contour</span></div>
+              </div>
+              <div class="pitch-canvas-wrapper">
+                <canvas id="cine-pitch-canvas" class="pitch-canvas"></canvas>
+              </div>
+            </div>
+
+            <div class="card col-12">
+              <div class="card-header">
+                <div class="card-title"><span>🎹 Cine Swara Timeline &amp; Notation</span></div>
+              </div>
+              <div class="swara-timeline-wrapper">
+                <canvas id="cine-timeline-canvas" class="swara-timeline-canvas"></canvas>
+              </div>
+              <div id="cine-notation" class="notation-box" style="margin-top:1rem" contenteditable="true"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         PAGE 4: ALAPANA / HUMMING RECORDING
+         ========================================== -->
+    <section id="page-humming" class="page-view">
+      <div class="grid g-12">
+        <div class="card col-12">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+              <span>Live Alapana &amp; Humming Capture</span>
+            </div>
+            <span class="card-badge">Microphone Real-Time Audio</span>
+          </div>
+
+          <div class="grid g-12">
+            <!-- Recording Center -->
+            <div class="col-8">
+              <div style="background:var(--bg-input); border:1px solid var(--line); border-radius:var(--radius-lg); padding:2rem; text-align:center; display:flex; flex-direction:column; align-items:center; gap:1.2rem">
+                <!-- Live Visualizer Canvas -->
+                <canvas id="mic-visualizer-canvas" width="600" height="80" style="width:100%; max-width:600px; height:80px; background:#080612; border-radius:var(--radius-md); border:1px solid var(--line-light)"></canvas>
+
+                <div id="mic-timer" style="font-family:var(--font-mono); font-size:2rem; font-weight:700; color:var(--gold-bright)">00:00</div>
+
+                <div style="display:flex; gap:1rem; align-items:center; flex-wrap:wrap; justify-content:center">
+                  <button id="mic-record-btn" class="btn btn-primary btn-lg" onclick="toggleHummingRecording()">
+                    <span>🎙️</span> Start Alapana Recording
+                  </button>
+                  <button id="humming-analyze-btn" class="btn btn-purple btn-lg" disabled onclick="analyzeHummingAudio()">
+                    Analyze Recorded Alapana
+                  </button>
+                </div>
+
+                <audio id="humming-player" controls style="display:none; width:100%; max-width:480px; margin-top:0.5rem"></audio>
+
+                <div id="humming-status" style="color:var(--gold); font-size:0.88rem; font-weight:600"></div>
+                <div id="humming-err" style="color:var(--err); font-size:0.88rem"></div>
+              </div>
+            </div>
+
+            <!-- Side Guidance & Shruti Override -->
+            <div class="col-4">
+              <div class="card" style="height:100%; background:var(--bg-surface)">
+                <h4 style="color:var(--gold-light); margin-bottom:0.6rem">Voice &amp; Shruti Guidance</h4>
+                <p style="font-size:0.84rem; line-height:1.6; margin-bottom:1rem">
+                  Without a background tanpura drone, estimating tonic Sa from pure voice can be ambiguous. Specifying your singing pitch ensures higher raga precision.
+                </p>
+
+                <div class="form-group">
+                  <label>Manual Tonic Sa</label>
+                  <select id="humming-tonic">
+                    <option value="">Auto-Detect Sa</option>
+                    <option value="130.81">C3 (1 Kattai - 130.8 Hz)</option>
+                    <option value="138.59">C#3 (1.5 Kattai - 138.6 Hz)</option>
+                    <option value="146.83" selected>D3 (2 Kattai - 146.8 Hz)</option>
+                    <option value="155.56">D#3 (2.5 Kattai - 155.6 Hz)</option>
+                    <option value="164.81">E3 (3 Kattai - 164.8 Hz)</option>
+                    <option value="174.61">F3 (4 Kattai - 174.6 Hz)</option>
+                    <option value="196.00">G3 (5 Kattai - 196.0 Hz)</option>
+                  </select>
+                </div>
+
+                <div style="border-top:1px solid var(--line-light); padding-top:0.8rem; margin-top:1rem">
+                  <small style="color:var(--text-muted); display:block; margin-bottom:0.4rem">Or upload an existing voice recording:</small>
+                  <input type="file" id="humming-file" accept="audio/*" onchange="showToast('Voice file loaded'); $('humming-analyze-btn').disabled=false">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Humming Results -->
+        <div id="humming-results" class="col-12" style="display:none">
+          <div class="grid g-12">
+            <div class="card col-5 card-gold">
+              <div class="card-header">
+                <div class="card-title"><span>🎙️ Vocal Match Result</span></div>
+                <span class="card-badge" id="hum-top-confidence">--%</span>
+              </div>
+              <h2 id="hum-top-raga" class="gold-gradient-text" style="font-size:2rem; margin-bottom:0.4rem">—</h2>
+              <div id="hum-tonic-val" style="color:var(--text-soft); font-size:0.85rem; margin-bottom:1rem">—</div>
+
+              <label style="margin-bottom:0.4rem">Likely Candidate Ragas</label>
+              <div id="hum-candidates"></div>
+
+              <div style="margin-top:1.2rem; border-top:1px solid var(--line-light); padding-top:0.8rem">
+                <button class="btn btn-primary btn-sm" onclick="sendHummingToComposer()">
+                  ✨ Send to AI Composer Studio
+                </button>
+              </div>
+            </div>
+
+            <div class="card col-7">
+              <div class="card-header">
+                <div class="card-title"><span>📈 Vocal Pitch Trajectory</span></div>
+              </div>
+              <div class="pitch-canvas-wrapper">
+                <canvas id="humming-pitch-canvas" class="pitch-canvas" style="height:260px"></canvas>
+              </div>
+            </div>
+
+            <div class="card col-12">
+              <div class="card-header">
+                <div class="card-title"><span>🎹 Detected Swara Timeline &amp; Notation</span></div>
+              </div>
+              <div class="swara-timeline-wrapper">
+                <canvas id="humming-timeline-canvas" class="swara-timeline-canvas"></canvas>
+              </div>
+              <div id="hum-notation" class="notation-box" style="margin-top:0.8rem"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         PAGE 5: RAGA EXPLORER
+         ========================================== -->
+    <section id="page-explorer" class="page-view">
+      <div class="card col-12" style="margin-bottom:1.5rem">
+        <div class="card-header">
+          <div class="card-title">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+            <span>Raga Explorer &amp; Scale Catalog</span>
+          </div>
+          <span class="card-badge" id="raga-count-badge">16 Ragas</span>
+        </div>
+
+        <div style="display:flex; gap:1rem; flex-wrap:wrap; align-items:center">
+          <div style="flex:1; min-width:260px">
+            <input type="text" id="raga-search" placeholder="Search by raga name or swaras (e.g., Mohanam, S R2 G3...)" oninput="renderRagaGrid()">
+          </div>
+          <div style="display:flex; gap:0.4rem; flex-wrap:wrap">
+            <button class="btn btn-secondary btn-sm raga-filter-btn active" data-filter="all" onclick="setRagaFilter('all')">All Ragas</button>
+            <button class="btn btn-secondary btn-sm raga-filter-btn" data-filter="melakarta" onclick="setRagaFilter('melakarta')">Melakarta</button>
+            <button class="btn btn-secondary btn-sm raga-filter-btn" data-filter="janya" onclick="setRagaFilter('janya')">Janya</button>
+            <button class="btn btn-secondary btn-sm raga-filter-btn" data-filter="audava" onclick="setRagaFilter('audava')">Pentatonic (Audava)</button>
+            <button class="btn btn-secondary btn-sm raga-filter-btn" data-filter="shadava" onclick="setRagaFilter('shadava')">Hexatonic (Shadava)</button>
+            <button class="btn btn-secondary btn-sm raga-filter-btn" data-filter="sampoorna" onclick="setRagaFilter('sampoorna')">Heptatonic (Sampoorna)</button>
+            <button class="btn btn-secondary btn-sm raga-filter-btn" data-filter="vakra" onclick="setRagaFilter('vakra')">Vakra</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Raga Cards Grid -->
+      <div id="raga-grid" class="grid g-12"></div>
+    </section>
+
+    <!-- ==========================================
+         PAGE 6: AI COMPOSER
+         ========================================== -->
+    <section id="page-composer" class="page-view">
+      <div class="grid g-12">
+        <!-- Control Card -->
+        <div class="card col-12">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19.4c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0l1.9-1.9C9.22 19.58 10.56 20 12 20c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 15c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/></svg>
+              <span>AI Raga Composer Studio (Two-Raga Melodic Synthesis)</span>
+            </div>
+            <span class="card-badge">Grammar &amp; Cadence Engine</span>
+          </div>
+
+          <!-- Mood Presets -->
+          <div style="margin-bottom:1.2rem">
+            <label style="margin-bottom:0.5rem">Select Musical Mood / Rasa Preset:</label>
+            <div style="display:flex; gap:0.6rem; flex-wrap:wrap">
+              <button class="btn btn-secondary btn-sm mood-preset-btn active" data-mood="joyous" onclick="setComposerMood('joyous')">☀️ Joyous / Bright (Hasya/Sringara)</button>
+              <button class="btn btn-secondary btn-sm mood-preset-btn" data-mood="pathos" onclick="setComposerMood('pathos')">🌧️ Pathos / Longing (Karuna)</button>
+              <button class="btn btn-secondary btn-sm mood-preset-btn" data-mood="peaceful" onclick="setComposerMood('peaceful')">🕊️ Peaceful / Meditative (Shanta)</button>
+              <button class="btn btn-secondary btn-sm mood-preset-btn" data-mood="majestic" onclick="setComposerMood('majestic')">⚡ Majestic / Devotional (Veera/Bhakti)</button>
+            </div>
+          </div>
+
+          <div class="grid g-12">
+            <!-- Raga Selectors & Compatibility -->
+            <div class="col-6">
+              <div class="grid g-12">
+                <div class="col-6">
+                  <div class="form-group">
+                    <label>Raga A (Initial Phase)</label>
+                    <select id="composer-raga-a"></select>
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="form-group">
+                    <label>Raga B (Transition Phase)</label>
+                    <select id="composer-raga-b"></select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Compatibility Card -->
+              <div style="background:var(--bg-input); border:1px solid var(--line); border-radius:var(--radius-md); padding:1rem; margin-top:0.4rem">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem">
+                  <span style="font-size:0.85rem; font-weight:600; color:var(--text-soft)">Raga Scale Compatibility</span>
+                  <span class="card-badge" id="comp-jaccard">--% Jaccard</span>
+                </div>
+                <div style="font-size:0.82rem; margin-bottom:0.4rem">
+                  <span style="color:var(--text-muted)">Shared Pivot Swaras:</span> <span id="comp-shared-swaras">—</span>
+                </div>
+                <div style="font-size:0.82rem; margin-bottom:0.4rem">
+                  <span style="color:var(--text-muted)">Unique Colour Swaras (A):</span> <span id="comp-unique-a">—</span>
+                </div>
+                <div style="font-size:0.82rem">
+                  <span style="color:var(--text-muted)">Unique Colour Swaras (B):</span> <span id="comp-unique-b">—</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Parameters & Lyrics -->
+            <div class="col-6">
+              <div class="grid g-12">
+                <div class="col-6">
+                  <div class="form-group">
+                    <label>Phrase Length (Notes)</label>
+                    <input type="number" id="composer-length" value="16" min="8" max="48">
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="form-group">
+                    <label>Tempo (BPM)</label>
+                    <input type="number" id="composer-bpm" value="80" min="50" max="150">
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="form-group">
+                    <label>Tonic Sa (Hz)</label>
+                    <input type="number" id="composer-tonic" value="146.83" step="0.01">
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="form-group">
+                    <label>Variation Seed <small style="cursor:pointer; color:var(--gold)" onclick="$('composer-seed').value = Math.floor(Math.random()*9999)">[🎲 Random]</small></label>
+                    <input type="number" id="composer-seed" value="1">
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Blend Toward Raga B: <span id="composer-blend-val" style="color:var(--gold-bright); font-weight:700">50%</span></label>
+                <input type="range" id="composer-blend" min="0" max="100" value="50">
+              </div>
+            </div>
+
+            <!-- Lyrics / Sahitya Alignment Input -->
+            <div class="col-12" style="border-top:1px solid var(--line-light); padding-top:1rem">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem">
+                <label>Lyrics / Sahitya Syllables <small>(Optional: aligns text to notes)</small></label>
+                <div style="display:flex; gap:0.4rem">
+                  <button class="btn btn-secondary btn-sm" onclick="$('composer-lyrics').value='Va-tha-pi Ga-na-pa-thim Bha-je-ham'">Vatapi</button>
+                  <button class="btn btn-secondary btn-sm" onclick="$('composer-lyrics').value='En-da-ro Ma-ha-nu-bha-vu-lu'">Endaro</button>
+                  <button class="btn btn-secondary btn-sm" onclick="$('composer-lyrics').value='A-lai-pay-u-they Kan-na'">Alaipayuthey</button>
+                </div>
+              </div>
+              <input type="text" id="composer-lyrics" placeholder="e.g. Va-tha-pi Ga-na-pa-thim Bha-je-ham (use hyphens to separate syllables)">
+            </div>
+
+            <div class="col-12" style="display:flex; justify-content:space-between; align-items:center; margin-top:0.5rem">
+              <button class="btn btn-primary btn-lg" onclick="generateComposition()">
+                ✨ Generate Melodic Phrase
+              </button>
+              <div style="flex:1; margin-left:1.5rem">
+                <div id="composer-status" style="color:var(--gold); font-size:0.85rem; font-weight:600"></div>
+                <div id="composer-err" style="color:var(--err); font-size:0.85rem"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Generated Output Workspace -->
+        <div id="composer-results" class="col-12" style="display:none">
+          <div class="grid g-12">
+            <div class="card col-12 card-gold">
+              <div class="card-header">
+                <div class="card-title"><span>🎼 Generated Swara Composition</span></div>
+                <div style="display:flex; gap:0.6rem; flex-wrap:wrap">
+                  <button class="btn btn-primary btn-sm" onclick="downloadCompositionAudio()">📥 Download WAV</button>
+                  <button class="btn btn-purple btn-sm" onclick="downloadCompositionMIDI()">🎹 Download MIDI</button>
+                  <button class="btn btn-secondary btn-sm" onclick="downloadCompositionSheet()">📄 Export Notation</button>
+                  <button class="btn btn-secondary btn-sm" onclick="saveCurrentComposition()">💾 Save to Library</button>
+                </div>
+              </div>
+
+              <!-- Audio Player -->
+              <div class="audio-player-custom">
+                <div class="player-btn" onclick="const p=$('composer-player'); p.paused ? p.play() : p.pause()">
+                  <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                </div>
+                <div class="player-track-info">
+                  <div class="player-title-row">
+                    <span id="player-track-title" style="font-weight:600">Generated Raga Synthesis</span>
+                    <span>16-bit PCM Audio</span>
+                  </div>
+                  <audio id="composer-player" controls style="width:100%; margin-top:4px"></audio>
+                </div>
+              </div>
+
+              <!-- Swara Notation Box -->
+              <div style="margin-top:1rem">
+                <label style="margin-bottom:0.3rem">Classical Swara Notation</label>
+                <div id="comp-notation" class="notation-box" style="font-size:1.1rem; line-height:2"></div>
+                <small id="comp-legend" style="color:var(--text-muted); display:block; margin-top:0.4rem"></small>
+              </div>
+
+              <!-- Aligned Lyrics / Sahitya Display -->
+              <div id="comp-dual-notation-container" style="margin-top:1.2rem; display:none">
+                <label style="margin-bottom:0.3rem">Synchronized Swara &amp; Sahitya (Lyrics) Alignment</label>
+                <pre id="comp-dual-notation" style="font-family:var(--font-mono); font-size:0.95rem; background:var(--bg-input); padding:1rem; border-radius:var(--radius-md); border:1px solid var(--line); color:var(--gold-bright); overflow-x:auto"></pre>
+              </div>
+
+              <!-- Validation Checks -->
+              <div style="margin-top:1.2rem; border-top:1px solid var(--line-light); padding-top:1rem">
+                <label style="margin-bottom:0.5rem">Classical Rule Conformance Checks</label>
+                <div id="comp-checks" style="display:flex; gap:0.5rem; flex-wrap:wrap"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         PAGE 7: LIBRARY & ARCHIVE
+         ========================================== -->
+    <section id="page-library" class="page-view">
+      <div class="card col-12" style="margin-bottom:1.5rem">
+        <div class="card-header">
+          <div class="card-title">
+            <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>
+            <span>Personal Music Library &amp; Archives</span>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="exportLibraryBackup()">Backup Library (JSON)</button>
+        </div>
+
+        <div style="display:flex; gap:1rem; flex-wrap:wrap; align-items:center">
+          <div style="flex:1; min-width:240px">
+            <input type="text" id="library-search" placeholder="Search saved analyses, ragas, or dates..." oninput="renderLibrary()">
+          </div>
+          <div style="display:flex; gap:0.4rem">
+            <button class="btn btn-secondary btn-sm active" onclick="renderLibrary('all')">All Records</button>
+            <button class="btn btn-secondary btn-sm" onclick="renderLibrary('carnatic')">Classical</button>
+            <button class="btn btn-secondary btn-sm" onclick="renderLibrary('composition')">Compositions</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="library-grid" class="grid g-12"></div>
+    </section>
+
+    <!-- ==========================================
+         PAGE 8: GLOSSARY & REFERENCE
+         ========================================== -->
+    <section id="page-glossary" class="page-view">
+      <div class="grid g-12">
+        <!-- Glossary Table -->
+        <div class="card col-7">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+              <span>Carnatic Music Terminology Glossary</span>
+            </div>
+            <input type="text" id="glossary-search" placeholder="Filter terms..." style="width:160px; padding:0.4rem" oninput="renderGlossary()">
+          </div>
+          <div style="max-height:480px; overflow-y:auto">
+            <table style="width:100%; border-collapse:collapse; font-size:0.88rem">
+              <thead>
+                <tr style="border-bottom:1px solid var(--line); text-align:left; color:var(--text-muted)">
+                  <th style="padding:0.6rem">Term</th>
+                  <th style="padding:0.6rem">Category</th>
+                  <th style="padding:0.6rem">Definition</th>
+                </tr>
+              </thead>
+              <tbody id="glossary-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Swara Reference Table -->
+        <div class="card col-5">
+          <div class="card-header">
+            <div class="card-title"><span>🎹 16 Swaras &amp; Ratios</span></div>
+          </div>
+          <div style="max-height:480px; overflow-y:auto">
+            <table style="width:100%; border-collapse:collapse; font-size:0.85rem">
+              <thead>
+                <tr style="border-bottom:1px solid var(--line); text-align:left; color:var(--text-muted)">
+                  <th style="padding:0.5rem">Token</th>
+                  <th style="padding:0.5rem">Name</th>
+                  <th style="padding:0.5rem">Cents</th>
+                  <th style="padding:0.5rem">Ratio</th>
+                  <th style="padding:0.5rem">Western</th>
+                </tr>
+              </thead>
+              <tbody id="swaras-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         PAGE 9: CONTACT & FEEDBACK
+         ========================================== -->
+    <section id="page-contact" class="page-view">
+      <div class="grid g-12">
+        <!-- Contact Form -->
+        <div class="card col-7">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+              <span>Get in Touch with the Research Team</span>
+            </div>
+            <span class="card-badge">Open Collaboration</span>
+          </div>
+
+          <form id="contact-form">
+            <div class="grid g-12">
+              <div class="col-6">
+                <div class="form-group">
+                  <label>Full Name</label>
+                  <input type="text" id="contact-name" required placeholder="Vidya Narayanan">
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="form-group">
+                  <label>Email Address</label>
+                  <input type="email" id="contact-email" required placeholder="vidya@example.com">
+                </div>
+              </div>
+              <div class="col-12">
+                <div class="form-group">
+                  <label>Your Musical Role</label>
+                  <select id="contact-role">
+                    <option value="Carnatic Student">Carnatic Music Student</option>
+                    <option value="Vocalist">Classical Vocalist / Instrumentalist</option>
+                    <option value="Composer">Music Director / Composer</option>
+                    <option value="Researcher">Musicology / MIR Researcher</option>
+                    <option value="Expert">Carnatic Domain Expert</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-12">
+                <div class="form-group">
+                  <label>Message / Collaboration Enquiry</label>
+                  <textarea id="contact-msg" rows="4" required placeholder="Share your feedback, report a raga classification observation, or suggest new varnam dataset additions..."></textarea>
+                </div>
+              </div>
+              <div class="col-12">
+                <button type="submit" class="btn btn-primary">Send Message</button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- Feedback & Domain Expert Note -->
+        <div class="col-5">
+          <div class="card" style="margin-bottom:1.4rem">
+            <h4 style="color:var(--gold-light); margin-bottom:0.6rem">Platform Rating &amp; Feedback</h4>
+            <p style="font-size:0.85rem; margin-bottom:1rem">Rate your experience with pitch tracking and raga analysis:</p>
+            <div style="display:flex; gap:0.5rem; margin-bottom:1rem">
+              <button class="btn btn-secondary btn-sm" onclick="handleFeedbackSubmit(5)">★★★★★ (5/5)</button>
+              <button class="btn btn-secondary btn-sm" onclick="handleFeedbackSubmit(4)">★★★★☆ (4/5)</button>
+              <button class="btn btn-secondary btn-sm" onclick="handleFeedbackSubmit(3)">★★★☆☆ (3/5)</button>
+            </div>
+            <textarea id="feedback-text" placeholder="Suggestions for the composer or pitch tracker..." style="margin-bottom:0.8rem"></textarea>
+            <button class="btn btn-secondary btn-sm" onclick="handleFeedbackSubmit(5)">Submit Feedback</button>
+          </div>
+
+          <div class="card" style="border-color:rgba(229,176,66,0.3)">
+            <h4 style="color:var(--gold); margin-bottom:0.4rem">Music Domain Experts Wanted</h4>
+            <p style="font-size:0.84rem; line-height:1.6">
+              In accordance with Team Rule 4, authentic prayoga phrases, gamaka oscillation envelopes, and annotated film songs require verified input from musicians and scholars. If you are interested in annotating or verifying scales, please reach out via the contact form.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==========================================
+       MODAL: AUTHENTICATION & PROFILE
+       ========================================== -->
+  <div id="auth-modal" class="modal-overlay" onclick="if(event.target===this) closeAuthModal()">
+    <div class="modal-content">
+      <button class="modal-close-btn" onclick="closeAuthModal()">✕</button>
+      
+      <div class="tab-switcher" style="margin-bottom:1.5rem">
+        <button class="tab-btn auth-tab-btn active" data-tab="signin" onclick="switchAuthTab('signin')">Sign In</button>
+        <button class="tab-btn auth-tab-btn" data-tab="register" onclick="switchAuthTab('register')">Register</button>
+        <button class="tab-btn auth-tab-btn" data-tab="profile" onclick="switchAuthTab('profile')">My Profile</button>
+      </div>
+
+      <!-- Sign In Form -->
+      <div id="auth-signin-form">
+        <h3 style="margin-bottom:0.4rem">Sign in to Varnami</h3>
+        <p style="font-size:0.85rem; margin-bottom:1.2rem">Access your saved compositions and audio analysis history.</p>
+
+        <div class="form-group">
+          <label>Email or Username</label>
+          <input type="text" id="signin-email" value="vidya@carnatic.edu">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="signin-pass" value="••••••••">
+        </div>
+
+        <button class="btn btn-primary btn-lg" style="width:100%; margin-top:0.8rem" onclick="demoLogin('student')">
+          Sign In
+        </button>
+
+        <div style="border-top:1px solid var(--line-light); padding-top:1rem; margin-top:1.5rem">
+          <small style="color:var(--text-muted); display:block; margin-bottom:0.6rem">Instant One-Click Demo Profiles:</small>
+          <div style="display:flex; gap:0.5rem; flex-wrap:wrap">
+            <button class="btn btn-secondary btn-sm" onclick="demoLogin('student')">🎓 Student (Vidya)</button>
+            <button class="btn btn-secondary btn-sm" onclick="demoLogin('musician')">🎻 Vidwan (Sundar)</button>
+            <button class="btn btn-secondary btn-sm" onclick="demoLogin('composer')">🎼 Composer (Arvind)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Register Form -->
+      <div id="auth-register-form" style="display:none">
+        <h3 style="margin-bottom:0.4rem">Create Your Profile</h3>
+        <p style="font-size:0.85rem; margin-bottom:1.2rem">Join students and musicians using Carnatic intelligence.</p>
+
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="reg-name" placeholder="Sundararajan">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="reg-email" placeholder="sundar@example.com">
+        </div>
+        <div class="form-group">
+          <label>Musical Role</label>
+          <select id="reg-role">
+            <option>Carnatic Student</option>
+            <option>Vocalist / Instrumentalist</option>
+            <option>Music Composer</option>
+            <option>Researcher / Scholar</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Default Singing Pitch / Shruti</label>
+          <select id="reg-tonic">
+            <option value="138.59">1 Kattai / C (138.6 Hz)</option>
+            <option value="146.83" selected>2 Kattai / D (146.8 Hz)</option>
+            <option value="164.81">3 Kattai / E (164.8 Hz)</option>
+            <option value="174.61">4 Kattai / F (174.6 Hz)</option>
+            <option value="196.00">5 Kattai / G (196.0 Hz)</option>
+          </select>
+        </div>
+        <button class="btn btn-primary btn-lg" style="width:100%; margin-top:0.8rem" onclick="STATE.user={name:$('reg-name').value||'Musician', email:$('reg-email').value, role:$('reg-role').value, tonicHz:+$('reg-tonic').value, avatar:($('reg-name').value||'M').slice(0,2).toUpperCase()}; localStorage.setItem('varnami_user',JSON.stringify(STATE.user)); updateUserUI(); closeAuthModal(); showToast('Account created!')">
+          Register Account
+        </button>
+      </div>
+
+      <!-- Profile View -->
+      <div id="auth-profile-form" style="display:none">
+        <h3 style="margin-bottom:0.4rem">Manage Profile</h3>
+        <p style="font-size:0.85rem; margin-bottom:1.2rem">Customize your musical role and default analysis parameters.</p>
+
+        <div class="form-group">
+          <label>Name</label>
+          <input type="text" id="prof-name">
+        </div>
+        <div class="form-group">
+          <label>Role</label>
+          <input type="text" id="prof-role">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="prof-email">
+        </div>
+        <div class="form-group">
+          <label>Default Shruti Sa (Hz)</label>
+          <input type="number" id="prof-tonic" step="0.01">
+        </div>
+
+        <div style="display:flex; justify-content:space-between; margin-top:1.2rem">
+          <button class="btn btn-primary" onclick="STATE.user.name=$('prof-name').value; STATE.user.role=$('prof-role').value; STATE.user.email=$('prof-email').value; STATE.user.tonicHz=+$('prof-tonic').value; localStorage.setItem('varnami_user',JSON.stringify(STATE.user)); updateUserUI(); closeAuthModal(); showToast('Profile updated!')">
+            Save Changes
+          </button>
+          <button class="btn btn-secondary" style="color:var(--err)" onclick="localStorage.removeItem('varnami_user'); initUser(); closeAuthModal(); showToast('Signed out')">
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL: RAGA PROFILE & SCALE AUDIO
+       ========================================== -->
+  <div id="raga-modal" class="modal-overlay" onclick="if(event.target===this) closeRagaModal()">
+    <div class="modal-content">
+      <button class="modal-close-btn" onclick="closeRagaModal()">✕</button>
+
+      <span class="card-badge" id="modal-raga-type" style="margin-bottom:0.6rem">Melakarta</span>
+      <h2 id="modal-raga-title" class="gold-gradient-text" style="font-size:2.2rem; margin-bottom:0.8rem">Raga</h2>
+
+      <div style="background:var(--bg-input); border:1px solid var(--line); border-radius:var(--radius-md); padding:1rem; margin-bottom:1.2rem">
+        <div style="margin-bottom:0.6rem">
+          <small style="color:var(--text-muted); display:block">AROHANAM (ASCENDING)</small>
+          <div id="modal-arohanam" style="font-family:var(--font-mono); font-size:1.1rem; color:var(--gold-bright); font-weight:700">—</div>
+        </div>
+        <div>
+          <small style="color:var(--text-muted); display:block">AVAROHANAM (DESCENDING)</small>
+          <div id="modal-avarohanam" style="font-family:var(--font-mono); font-size:1.1rem; color:var(--gold-light); font-weight:700">—</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:1.2rem">
+        <label style="margin-bottom:0.4rem">Constituent Swaras</label>
+        <div id="modal-swaras-list"></div>
+      </div>
+
+      <div style="margin-bottom:1.2rem">
+        <small style="color:var(--text-muted)">Vakra (Zig-Zag) Scale:</small> <b id="modal-vakra" style="color:var(--text-main)">No</b>
+      </div>
+
+      <!-- Scale Audio Player with Tanpura -->
+      <div style="border-top:1px solid var(--line-light); padding-top:1.2rem; margin-top:1.2rem">
+        <h4 style="margin-bottom:0.6rem; color:var(--gold-light)">Interactive Scale Playback (Arohanam &amp; Avarohanam)</h4>
+        <div style="display:flex; gap:0.8rem; align-items:center; margin-bottom:0.8rem; flex-wrap:wrap">
+          <div style="min-width:180px">
+            <label style="font-size:0.78rem">Select Shruti / Sa</label>
+            <select id="modal-tonic-select" style="font-size:0.85rem">
+              <option value="130.81">1 Kattai / C (130.8 Hz)</option>
+              <option value="138.59">1.5 Kattai / C# (138.6 Hz)</option>
+              <option value="146.83" selected>2 Kattai / D (146.8 Hz)</option>
+              <option value="164.81">3 Kattai / E (164.8 Hz)</option>
+              <option value="174.61">4 Kattai / F (174.6 Hz)</option>
+              <option value="196.00">5 Kattai / G (196.0 Hz)</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="playRagaScale()">
+            ▶ Play Scale with Tanpura Drone
+          </button>
+        </div>
+        <audio id="modal-scale-player" controls style="width:100%"></audio>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- ==========================================
+       SITE FOOTER
+       ========================================== -->
+  <footer class="site-footer">
+    <div class="footer-container">
+      <div class="footer-meta">
+        <b>VARNAMI (CARNA-AI)</b> · AI-Powered Carnatic Music Intelligence &amp; Melodic Synthesis
+        <div style="margin-top:0.3rem; font-size:0.75rem; color:var(--text-dim)">
+          Built with spectral pitch tracking, directional transition grammar, and dual-raga synthesis.
+        </div>
+      </div>
+      <ul class="footer-links">
+        <li><a href="#" onclick="showPage('carnatic'); return false;">Carnatic Analysis</a></li>
+        <li><a href="#" onclick="showPage('cine'); return false;">Cine Songs</a></li>
+        <li><a href="#" onclick="showPage('humming'); return false;">Alapana Capture</a></li>
+        <li><a href="#" onclick="showPage('composer'); return false;">AI Composer</a></li>
+        <li><a href="#" onclick="showPage('glossary'); return false;">Glossary</a></li>
+        <li><a href="#" onclick="showPage('contact'); return false;">Contact</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <script src="/static/js/varnami.js"></script>
+</body>
+</html>

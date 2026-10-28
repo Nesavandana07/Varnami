@@ -134,7 +134,34 @@ def generate(a, b, length=16, blend=0.5, seed=0, tonic_hz=146.83, bpm=80, with_a
     if lyrics:
         out["lyrics"] = fit_lyrics(notes, lyrics)
     if with_audio: out["wav_base64"] = render_wav(notes, tonic_hz, spb)
+    out["midi_base64"] = base64.b64encode(make_midi_bytes(notes, bpm=bpm)).decode()
     return out
+
+
+def make_midi_bytes(notes, bpm=80, tonic_midi=60):
+    """Renders notes list into a standard MIDI format 0 byte string."""
+    def vlq(v):
+        out = bytearray([v & 0x7F])
+        v >>= 7
+        while v > 0:
+            out.append((v & 0x7F) | 0x80)
+            v >>= 7
+        out.reverse()
+        return bytes(out)
+    events = bytearray()
+    tempo_us = int(60_000_000 / max(20, min(300, bpm)))
+    events += b'\x00\xFF\x51\x03' + tempo_us.to_bytes(3, 'big')
+    for n in notes:
+        semi = int(n.get("semitone", 0))
+        pitch = max(0, min(127, tonic_midi + semi))
+        dur_beats = float(n.get("dur_beats", 1.0))
+        dur_ticks = max(1, int(round(dur_beats * 480)))
+        events += b'\x00\x90' + bytes([pitch, 96])
+        events += vlq(dur_ticks) + b'\x80' + bytes([pitch, 0])
+    events += b'\x00\xFF\x2F\x00'
+    hdr = b'MThd\x00\x00\x00\x06\x00\x00\x00\x01\x01\xE0'
+    trk = b'MTrk' + len(events).to_bytes(4, 'big') + bytes(events)
+    return bytes(hdr + trk)
 
 
 
